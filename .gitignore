@@ -36,6 +36,10 @@ data/*.json
 data/*.jsonl
 *.txt
 !requirements*.txt
+!data/boards.txt
+
+# Output files
+*.jsonl
 
 # IDE
 .DS_Store
