@@ -78,13 +78,33 @@ python src/ptt_textmining/crawler.py --file
 python src/ptt_textmining/crawler.py -h
 ```
 
-Options:
+**Basic Options:**
 - `-b, --board BOARD` - Crawl a specific board by name
 - `-f, --file` - Crawl all boards listed in data/boards.txt
 - `-l, --list` - List all available boards in boards.txt
 - `-h, --help` - Show help message
 
-Output files will be saved to the `output/` directory as JSON files.
+**Rate Limiting Options:**
+- `--article-delay SECONDS` - Delay between articles in seconds (default: 0.1)
+- `--page-delay SECONDS` - Delay between pages in seconds (default: 0.5)
+
+**Examples:**
+
+```bash
+# Use default rate limits
+python src/ptt_textmining/crawler.py -b NBA
+
+# Faster crawling (use with caution)
+python src/ptt_textmining/crawler.py -b NBA --article-delay 0.05 --page-delay 0.2
+
+# Slower/safer crawling
+python src/ptt_textmining/crawler.py -b NBA --article-delay 0.5 --page-delay 1.0
+
+# Crawl from file with custom delays
+python src/ptt_textmining/crawler.py -f --article-delay 0.2 --page-delay 0.8
+```
+
+Output files will be saved to the `output/` directory as JSONL files.
 
 ## Project Structure
 
@@ -159,6 +179,6 @@ cat output/NBA.jsonl | jq '.title'
 
 ## Notes
 
-- The crawler includes rate limiting (0.1s between articles, 0.5s between pages)
-- Output is in JSONL format (one JSON object per line) for efficient streaming and processing
-- When using file mode (`-f`), boards are processed sequentially and removed from `boards.txt` after completion
+- **Rate Limiting:** Default delays are 0.1s between articles and 0.5s between pages. These can be customized using `--article-delay` and `--page-delay` options
+- **Output Format:** Data is saved in JSONL format (one JSON object per line) for efficient streaming and processing
+- **File Mode:** When using `-f`, boards are processed sequentially and removed from `boards.txt` after completion

@@ -18,8 +18,16 @@ DATA_DIR = Path(__file__).parent.parent.parent / "data"
 OUTPUT_DIR = Path(__file__).parent.parent.parent / "output"
 BOARDS_FILE = DATA_DIR / "boards.txt"
 
+# Default rate limiting (in seconds)
+DEFAULT_ARTICLE_DELAY = 0.1  # Delay between articles
+DEFAULT_PAGE_DELAY = 0.5     # Delay between pages
+
 # Global session
 session = requests.Session()
+
+# Global rate limit settings (can be configured via command line)
+article_delay = DEFAULT_ARTICLE_DELAY
+page_delay = DEFAULT_PAGE_DELAY
 
 
 def get_board_page(board: str) -> BeautifulSoup:
@@ -70,6 +78,7 @@ def crawl_board_pages(url_list: List[str], board_name: str) -> None:
     total = len(url_list)
 
     while url_list:
+        url = None
         try:
             url = url_list.pop(0)
             response = session.get(url)
@@ -86,17 +95,18 @@ def crawl_board_pages(url_list: List[str], board_name: str) -> None:
                     link = entry.find("a")
                     if link:
                         article_url = PTT_BASE_URL + link["href"]
-                        time.sleep(0.1)  # Rate limiting
+                        time.sleep(article_delay)  # Rate limiting between articles
                         parse_article(article_url, board_name)
 
                 print(f"Download: {board_name} {100 * count / total:.1f}%")
 
         except Exception as e:
-            print(f"Exception: {url}")
+            if url:
+                print(f"Exception: {url}")
             print(e)
             time.sleep(1)
         else:
-            time.sleep(0.5)  # Rate limiting
+            time.sleep(page_delay)  # Rate limiting between pages
 
 
 def safe_extract_meta(soup: BeautifulSoup, class_tag: str, index: int,
@@ -280,6 +290,8 @@ def list_available_boards() -> None:
 
 def main() -> None:
     """Main entry point for the crawler."""
+    global article_delay, page_delay
+
     parser = argparse.ArgumentParser(
         description="PTT Web Crawler for scraping board data"
     )
@@ -298,8 +310,24 @@ def main() -> None:
         action="store_true",
         help="List all available boards in boards.txt"
     )
+    parser.add_argument(
+        "--article-delay",
+        type=float,
+        default=DEFAULT_ARTICLE_DELAY,
+        help=f"Delay between articles in seconds (default: {DEFAULT_ARTICLE_DELAY})"
+    )
+    parser.add_argument(
+        "--page-delay",
+        type=float,
+        default=DEFAULT_PAGE_DELAY,
+        help=f"Delay between pages in seconds (default: {DEFAULT_PAGE_DELAY})"
+    )
 
     args = parser.parse_args()
+
+    # Set rate limits from arguments
+    article_delay = args.article_delay
+    page_delay = args.page_delay
 
     # Create necessary directories
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -313,12 +341,14 @@ def main() -> None:
     # Handle board-specific crawl
     if args.board:
         print(f"Crawling board: {args.board}")
+        print(f"Rate limits: {article_delay}s between articles, {page_delay}s between pages")
         crawl_board(args.board)
         return
 
     # Handle file-based crawl
     if args.file:
         print("Crawling boards from boards.txt")
+        print(f"Rate limits: {article_delay}s between articles, {page_delay}s between pages")
         process_boards()
         return
 
